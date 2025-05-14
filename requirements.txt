@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+openai
+qdrant-client
+python-dotenv
+requests
+tiktoken
+beautifulsoup4
+email-validator

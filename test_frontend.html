@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnaptIQ | Financial Services Advisor</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <style>
+    :root {
+        --primary-color: #1a4f91; /* More professional blue */
+        --secondary-color: #1d4273; /* Darker blue */
+        --background-color: #f8fafc;
+        --text-color: #1e293b;
+        --border-color: #e2e8f0;
+        --accent-color: #0051a8; /* Accent blue */
+        --success-color: #15803d; /* Success green */
+        --finance-color: #00438e; /* Financial services blue */
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+        background: var(--background-color);
+        color: var(--text-color);
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px -1px rgb(0 0 0 / 0.1);
+        overflow: hidden;
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 24px 24px 0 24px;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 15px;
+    }
+
+    .bot-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a4f91, #0072c6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .bot-title {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .bot-name {
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: var(--finance-color);
+        margin: 0;
+    }
+
+    .bot-subtitle {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    #chat-messages {
+        height: 500px;
+        overflow-y: auto;
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .message {
+        margin-bottom: 20px;
+        padding: 12px;
+        border-radius: 8px;
+        opacity: 0;
+        animation: fadeIn 0.7s forwards;
+    }
+
+    @keyframes fadeIn {
+        to { opacity: 1; }
+    }
+
+    .user-message {
+        background: #e2e8f0;
+        margin-left: 20%;
+        border-radius: 10px 10px 0 10px;
+    }
+
+    .assistant-message {
+        background: #f1f5f9;
+        margin-right: 20%;
+        position: relative;
+        border-radius: 10px 10px 10px 0;
+        border-left: 3px solid #e0e7ef;
+    }
+
+    .assistant-message.finance {
+        border-left: 3px solid var(--finance-color);
+    }
+
+    .assistant-message .bot-avatar-inline {
+        position: absolute;
+        left: -56px;
+        top: 8px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a4f91, #0072c6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .message-content {
+        margin: 0;
+    }
+
+    .message-content a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .message-content a:hover {
+        text-decoration: underline;
+    }
+
+    .input-container {
+        display: flex;
+        padding: 20px;
+        gap: 10px;
+    }
+
+    #message-input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 16px;
+    }
+
+    button {
+        padding: 12px 24px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.2s, transform 0.2s;
+    }
+
+    button:hover {
+        background: var(--secondary-color);
+        transform: scale(1.05);
+    }
+
+    #lead-form {
+        display: none;
+        padding: 20px;
+        background: #f8fafc;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+        margin-bottom: 0;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #334155;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .form-group select {
+        height: 41px;
+    }
+
+    #status {
+        display: none;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+    }
+
+    .status.success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status.error {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    #loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        font-size: 1.2rem;
+        color: var(--primary-color);
+    }
+
+    .typing-indicator {
+        display: inline-block;
+        margin-left: 8px;
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+    }
+
+    .typing-indicator span {
+        animation: blink 1.4s infinite both;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes blink {
+        0%, 80%, 100% { opacity: 0; }
+        40% { opacity: 1; }
+    }
+
+
+
+    .sources {
+        margin-top: 10px;
+        font-size: 0.9em;
+        color: #64748b;
+    }
+
+    .sources a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .sources a:hover {
+        text-decoration: underline;
+    }
+
+    /* Welcome card distinct style */
+    .welcome-card {
+        background: linear-gradient(135deg, #f8fafc, #e0e7ef);
+        border: 2px solid #2563eb11;
+        border-left: 5px solid var(--finance-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 12px rgba(37,99,235,0.05);
+        font-size: 1.1rem;
+    }
+
+    /* Connection error warning */
+    .connection-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        display: none;
+        align-items: center;
+        border-left: 4px solid #ffc107;
+    }
+
+    .connection-warning-icon {
+        font-size: 24px;
+        margin-right: 12px;
+    }
+
+    .retry-button {
+        background: #ffc107;
+        color: #856404;
+        margin-left: auto;
+    }
+
+    .retry-button:hover {
+        background: #e0a800;
+    }
+
+    /* Inline contact form */
+    .inline-contact-form {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 10px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .inline-contact-form h3 {
+        margin-top: 0;
+        color: var(--finance-color);
+        font-size: 1.2rem;
+    }
+
+    .inline-contact-form .form-group {
+        margin-bottom: 12px;
+    }
+
+    .inline-contact-form label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+    }
+
+    .inline-contact-form input,
+    .inline-contact-form textarea,
+    .inline-contact-form select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .inline-contact-form button {
+        background: var(--finance-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.2s;
+    }
+
+    .inline-contact-form button:hover {
+        background: var(--secondary-color);
+        transform: scale(1.07);
+    }
+
+    /* Improved content formatting - REVISED FOR FINANCIAL SERVICES */
+    .response-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        word-break: normal;
+        word-wrap: break-word;
+        hyphens: none;
+        font-size: 0.95rem; /* Reduced base font size */
+    }
+
+    .executive-summary {
+        background: #f0f4fa;
+        border-left: 3px solid var(--finance-color);
+        padding: 12px 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .executive-summary h2 {
+        margin-top: 0;
+        font-size: 1.1rem;
+        color: var(--finance-color);
+    }
+
+    .executive-summary ul {
+        margin-bottom: 0;
+    }
+
+    .response-card h1 {
+        color: var(--finance-color);
+        margin-top: 0;
+        margin-bottom: 14px;
+        font-size: 1.4rem; /* Smaller heading */
+        font-weight: 600;
+    }
+
+    .response-card h2 {
+        color: var(--finance-color);
+        margin-top: 16px;
+        margin-bottom: 14px;
+        font-size: 1.25rem; /* Smaller heading */
+        font-weight: 600;
+    }
+
+    .response-card h3 {
+        color: var(--text-color);
+        margin-top: 16px;
+        margin-bottom: 8px;
+        font-size: 1.1rem; /* Smaller heading */
+        font-weight: 600;
+    }
+
+    .response-card h4 {
+        color: var(--text-color);
+        margin-top: 14px;
+        margin-bottom: 8px;
+        font-size: 1rem; /* Smaller heading */
+        font-weight: 600;
+    }
+
+    /* Control paragraph boldness */
+    .response-card p {
+        font-weight: normal;
+        margin-bottom: 12px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+    }
+
+    .response-card p strong,
+    .response-card li strong {
+        font-weight: 600; /* Less bold for strong text */
+    }
+
+    .response-card ul {
+        padding-left: 20px;
+        margin-bottom: 14px;
+        margin-top: 8px;
+    }
+
+    .response-card ul li {
+        margin-bottom: 6px;
+        white-space: normal;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .response-card hr {
+        border: 0;
+        height: 1px;
+        background: var(--border-color);
+        margin: 16px 0;
+    }
+
+    .metadata {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 14px;
+        font-size: 0.85rem;
+    }
+
+    .metadata-item {
+        display: flex;
+        align-items: center;
+        color: #64748b;
+    }
+
+    .source-link {
+        display: inline-block;
+        margin-top: 10px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    /* Financial term highlight - New Styling */
+    .financial-term {
+        border-bottom: 1px dotted var(--finance-color);
+        position: relative;
+        cursor: help;
+    }
+
+    .financial-term:hover .term-tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .term-tooltip {
+        visibility: hidden;
+        opacity: 0;
+        width: 250px;
+        background-color: #fff;
+        color: var(--text-color);
+        text-align: left;
+        border-radius: 6px;
+        padding: 10px 12px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -125px;
+        transition: opacity 0.2s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        border-left: 3px solid var(--finance-color);
+        font-size: 0.85rem;
+        line-height: 1.4;
+        font-weight: normal;
+    }
+
+    .term-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #e2e8f0 transparent transparent transparent;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="bot-avatar">AI</div>
+            <div class="bot-title">
+                <h2 class="bot-name">AnaptIQ</h2>
+                <p class="bot-subtitle">Ask Me Anything About Anaptyss</p>
+            </div>
+        </div>
+        <div class="connection-warning" id="connection-warning">
+            <span class="connection-warning-icon">⚠️</span>
+            <span>Connection to server lost. Some features may be unavailable.</span>
+            <button class="retry-button" id="retry-btn">Retry</button>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="loading"><span class="typing-indicator"><span>.</span><span>.</span><span>.</span></span> AnaptIQ is thinking...</div>
+        <div class="input-container">
+            <input type="text" id="message-input" placeholder="Ask about financial services technology, digital transformation, compliance...">
+            <button id="send-btn">Send</button>
+            <button id="clear-btn">Clear Chat</button>
+        </div>
+        <div id="lead-form">
+            <h3>Connect with a Financial Services Expert</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="name">Name*</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email*</label>
+                    <input type="email" id="email" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="company">Company*</label>
+                    <input type="text" id="company" required>
+                </div>
+                <div class="form-group">
+                    <label for="job-title">Job Title</label>
+                    <input type="text" id="job-title">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="industry">Industry*</label>
+                    <select id="industry" required>
+                        <option value="">-- Select Industry --</option>
+                        <option value="banking">Banking</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="wealth_management">Wealth Management</option>
+                        <option value="capital_markets">Capital Markets</option>
+                        <option value="payments">Payments</option>
+                        <option value="fintech">Fintech</option>
+                        <option value="other">Other Financial Services</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="company-size">Company Size</label>
+                    <select id="company-size">
+                        <option value="">-- Select Size --</option>
+                        <option value="1-50">1-50 employees</option>
+                        <option value="51-200">51-200 employees</option>
+                        <option value="201-1000">201-1000 employees</option>
+                        <option value="1001-5000">1001-5000 employees</option>
+                        <option value="5001+">5001+ employees</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="message">How can we help your organization?</label>
+                <textarea id="message" rows="4"></textarea>
+            </div>
+            <button id="submit-lead">Submit</button>
+        </div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Get the current hostname and use it for the API URL
+        const currentHost = window.location.hostname;
+        const API_URL = `http://${currentHost}:8000`;
+        console.log("Using API URL:", API_URL);
+        
+        // DOM Elements
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-btn');
+        const leadForm = document.getElementById('lead-form');
+        const submitLead = document.getElementById('submit-lead');
+        const statusDiv = document.getElementById('status');
+        const clearBtn = document.getElementById('clear-btn');
+        const loadingDiv = document.getElementById('loading');
+        const connectionWarning = document.getElementById('connection-warning');
+        const retryBtn = document.getElementById('retry-btn');
+        
+        // Session storage
+        let sessionId = localStorage.getItem('anaptyss_session_id');
+        let serverConnected = true;
+        let messageCounter = 0;
+        
+        // Financial services terminology for tooltips
+        const financialTerms = {
+            "Basel III": "A global regulatory framework for more resilient banks and banking systems, addressing capital adequacy, stress testing, and market liquidity risk.",
+            "KYC": "Know Your Customer - the process of verifying the identity of your clients and assessing their suitability, along with potential risks of illegal intentions.",
+            "AML": "Anti-Money Laundering - regulations designed to prevent criminals from disguising illegally obtained funds as legitimate income.",
+            "GDPR": "General Data Protection Regulation - EU regulation on data protection and privacy that standardizes data protection law across the EU.",
+            "Core Banking": "A back-end system that processes daily banking transactions and posts updates to accounts and financial records.",
+            "Digital Transformation": "The integration of digital technology into all areas of a business, fundamentally changing how organizations operate and deliver value to customers.",
+            "PSD2": "Payment Services Directive 2 - EU directive to regulate payment services and payment service providers throughout the EU and EEA.",
+            "Open Banking": "Banking practice that provides third-party financial service providers with access to consumer banking data through APIs.",
+            "APIs": "Application Programming Interfaces - connections that allow applications to communicate with one another.",
+            "Cloud Migration": "The process of moving digital assets like data, workloads, IT resources, or applications to cloud infrastructure.",
+            "Microservices": "An architectural style that structures an application as a collection of services that are independently deployable.",
+            "Model Risk Management": "The practice of managing potential adverse consequences from decisions based on incorrect or misused financial models.",
+            "Regulatory Compliance": "The process and state of adhering to guidelines and specifications relevant to a business, often established by government agencies.",
+            "BCBS": "Basel Committee on Banking Supervision - the primary global standard setter for the prudential regulation of banks.",
+            "FRTB": "Fundamental Review of the Trading Book - a set of rules from the Basel Committee that governs how banks handle market risk.",
+            "ESG": "Environmental, Social, and Governance criteria - a set of standards for a company's operations that socially conscious investors use to screen potential investments.",
+            "RegTech": "Regulatory Technology - the use of technology to enhance regulatory processes with a focus on compliance.",
+            "FinTech": "Financial Technology - innovations that aim to compete with traditional financial methods in the delivery of financial services.",
+            "Blockchain": "A distributed ledger technology that maintains a growing list of records, called blocks, that are linked using cryptography.",
+            "DLT": "Distributed Ledger Technology - a consensus of replicated, shared, and synchronized digital data geographically spread across multiple sites.",
+            "Smart Contracts": "Self-executing contracts with the terms of the agreement directly written into code.",
+            "AI": "Artificial Intelligence - the simulation of human intelligence processes by machines, especially computer systems.",
+            "Machine Learning": "A subset of AI that provides systems the ability to automatically learn and improve from experience.",
+            "Risk Management": "The identification, evaluation, and prioritization of risks followed by coordinated application of resources to minimize, monitor, and control the probability or impact of unfortunate events.",
+            "Stress Testing": "A simulation technique used on assets, portfolios, or entities to determine their reactions to different financial situations.",
+            "Capital Adequacy": "A measure of a bank's capital in relation to its risk exposure, used to protect depositors and promote the stability and efficiency of financial systems."
+        };
+        
+        // Initialize marked with security options
+        marked.setOptions({
+            headerIds: false,
+            mangle: false,
+            breaks: true,
+            gfm: true
+        });
+        
+        // Functions
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showLoading() {
+            loadingDiv.style.display = 'block';
+            sendButton.disabled = true;
+        }
+        
+        function hideLoading() {
+            loadingDiv.style.display = 'none';
+            sendButton.disabled = false;
+        }
+        
+        function createMessageElement(content, isUser = false, isWelcome = false) {
+			const messageDiv = document.createElement('div');
+			messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+			if (isWelcome) messageDiv.classList.add('welcome-card');
+			if (!isUser) messageDiv.classList.add('finance'); // Add finance class to assistant messages
+			
+			const contentP = document.createElement('div');
+			contentP.className = 'message-content';
+			
+			if (isUser) {
+				contentP.textContent = content;
+			} else {
+				// Process content to properly render lists and sections
+				let processedContent = content || "";
+				
+				// Fix Executive Summary formatting to ensure it's rendered as a header, not bold
+				processedContent = processedContent.replace(/\*\*Executive Summary\*\*/g, '## Executive Summary');
+				processedContent = processedContent.replace(/\*\*Executive Summary:\*\*/g, '## Executive Summary');
+				
+				// Fix bullet points with proper line spacing
+				processedContent = processedContent.replace(/•\s+(.*?)(?=(\n•|\n\n|\n$|$))/gs, '• $1\n\n');
+				processedContent = processedContent.replace(/\n-\s+(.*?)(?=(\n-|\n\n|\n$|$))/gs, '\n- $1\n\n');
+				
+				// Ensure proper spacing for lists and paragraphs
+				processedContent = processedContent.replace(/\s+\n/g, '\n');
+				processedContent = processedContent.replace(/\n{3,}/g, '\n\n');
+				
+				// Fix spacing around bullets
+				processedContent = processedContent.replace(/([^\n])(\n)(•|\-)/g, '$1\n\n$3');
+				
+				// Remove trailing spaces at end of lines
+				processedContent = processedContent.replace(/\s+$/gm, '');
+				
+				// Ensure paragraph breaks
+				processedContent = processedContent.replace(/\n\n\n+/g, '\n\n');
+				
+				// Sanitize and render markdown
+				const sanitizedHtml = DOMPurify.sanitize(marked.parse(processedContent));
+				
+				// Create a well-formatted card for the response
+				const card = document.createElement('div');
+				card.className = 'response-card';
+				card.innerHTML = sanitizedHtml;
+				
+				// Add financial terminology tooltips
+				highlightFinancialTerms(card);
+				
+				// Add bot avatar
+				if (!isWelcome) {
+					const avatar = document.createElement('div');
+					avatar.className = 'bot-avatar-inline';
+					avatar.textContent = 'AI';
+					messageDiv.appendChild(avatar);
+					
+					// Add feedback buttons
+					const feedbackDiv = document.createElement('div');
+					feedbackDiv.style.marginTop = '12px';
+					feedbackDiv.style.textAlign = 'right';
+					
+					const upBtn = document.createElement('button');
+					upBtn.textContent = '👍';
+					upBtn.title = 'Helpful';
+					upBtn.style.marginRight = '8px';
+					upBtn.style.padding = '4px 8px';
+					upBtn.onclick = () => showStatus('Thank you for your feedback!', 'success');
+					
+					const downBtn = document.createElement('button');
+					downBtn.textContent = '👎';
+					downBtn.title = 'Not helpful';
+					downBtn.style.padding = '4px 8px';
+					downBtn.onclick = () => showStatus('We appreciate your feedback!', 'success');
+					
+					feedbackDiv.appendChild(upBtn);
+					feedbackDiv.appendChild(downBtn);
+					card.appendChild(feedbackDiv);
+				}
+				
+				contentP.appendChild(card);
+			}
+			
+			messageDiv.appendChild(contentP);
+			messageCounter++;
+			return messageDiv;
+		}
+        function highlightFinancialTerms(element) {
+            // Find all text nodes in the element
+            const textNodes = [];
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+                // Skip nodes that are already inside a financial term
+                if (node.parentNode.classList && node.parentNode.classList.contains('financial-term')) continue;
+                textNodes.push(node);
+            }
+            
+            // Process each text node
+            textNodes.forEach(textNode => {
+                let text = textNode.nodeValue;
+                let newHtml = text;
+                
+                // Check for each financial term
+                for (const [term, definition] of Object.entries(financialTerms)) {
+                    // Create a regex that matches the whole term as a word
+                    const regex = new RegExp(`\\b${term}\\b`, 'gi');
+                    
+                    // Replace with HTML for tooltip
+                    newHtml = newHtml.replace(regex, `<span class="financial-term">${term}<span class="term-tooltip">${definition}</span></span>`);
+                }
+                
+                // If any terms were found and replaced
+                if (newHtml !== text) {
+                    const fragment = document.createElement('span');
+                    fragment.innerHTML = newHtml;
+                    textNode.parentNode.replaceChild(fragment, textNode);
+                }
+            });
+        }
+        
+        function displaySuggestedQuestions(questions) {
+            if (!questions || questions.length === 0) return;
+            
+            const container = document.createElement('div');
+            container.className = 'suggested-questions';
+            
+            const heading = document.createElement('h4');
+            heading.textContent = 'You might also want to ask:';
+            container.appendChild(heading);
+            
+            questions.forEach(question => {
+                const btn = document.createElement('span');
+                btn.className = 'suggested-question';
+                btn.textContent = question;
+                btn.onclick = () => {
+                    messageInput.value = question;
+                    sendMessage();
+                };
+                container.appendChild(btn);
+            });
+            
+            chatMessages.appendChild(container);
+        }
+        
+        function displaySources(sources) {
+            if (!sources || sources.length === 0) return;
+            
+            const container = document.createElement('div');
+            container.className = 'sources';
+            
+            const heading = document.createElement('h4');
+            heading.style.fontSize = '0.95rem';
+            heading.style.color = '#1a4f91';
+            heading.style.marginBottom = '8px';
+            heading.textContent = 'References & Resources';
+            container.appendChild(heading);
+            
+            // Create a table for better organization
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.style.fontSize = '0.85rem';
+            
+            // Table header
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            ['Type', 'Title', 'Relevance'].forEach(header => {
+                const th = document.createElement('th');
+                th.style.textAlign = 'left';
+                th.style.paddingBottom = '4px';
+                th.style.fontWeight = '600';
+                th.style.color = '#475569';
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Table body
+            const tbody = document.createElement('tbody');
+            
+            sources.forEach((source, index) => {
+                const row = document.createElement('tr');
+                if (index % 2 === 0) {
+                    row.style.backgroundColor = '#f8fafc';
+                }
+                
+                // Source type
+                const typeCell = document.createElement('td');
+                typeCell.style.padding = '4px 8px 4px 0';
+                typeCell.textContent = source.content_type_name || 
+                                      (source.content_type ? source.content_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Article');
+                row.appendChild(typeCell);
+                
+                // Source title with link
+                const titleCell = document.createElement('td');
+                titleCell.style.padding = '4px 8px';
+                
+                const link = document.createElement('a');
+                link.href = source.url;
+                link.target = '_blank';
+                link.textContent = source.title;
+                link.style.color = '#1a4f91';
+                link.style.textDecoration = 'none';
+                link.style.fontWeight = '500';
+                
+                titleCell.appendChild(link);
+                row.appendChild(titleCell);
+                
+                // Relevance score
+                const scoreCell = document.createElement('td');
+                scoreCell.style.padding = '4px 0 4px 8px';
+                
+                const scoreValue = Math.round(source.score * 100);
+                const scoreBar = document.createElement('div');
+                scoreBar.style.position = 'relative';
+                scoreBar.style.width = '60px';
+                scoreBar.style.height = '8px';
+                scoreBar.style.backgroundColor = '#e2e8f0';
+                scoreBar.style.borderRadius = '4px';
+                
+                const scoreIndicator = document.createElement('div');
+                scoreIndicator.style.position = 'absolute';
+                scoreIndicator.style.top = '0';
+                scoreIndicator.style.left = '0';
+                scoreIndicator.style.width = `${scoreValue}%`;
+                scoreIndicator.style.height = '8px';
+                scoreIndicator.style.backgroundColor = '#1a4f91';
+                scoreIndicator.style.borderRadius = '4px';
+                scoreIndicator.title = `${scoreValue}% match`;
+                
+                scoreBar.appendChild(scoreIndicator);
+                scoreCell.appendChild(scoreBar);
+                row.appendChild(scoreCell);
+                
+                tbody.appendChild(row);
+            });
+            
+            table.appendChild(tbody);
+            container.appendChild(table);
+            
+            // Add note about how sources are used
+            const noteText = document.createElement('p');
+            noteText.style.fontSize = '0.8rem';
+            noteText.style.color = '#64748b';
+            noteText.style.marginTop = '8px';
+            noteText.textContent = 'These references were used to provide information in this response. Click any title to read the full document.';
+            container.appendChild(noteText);
+            
+            chatMessages.appendChild(container);
+        }
+        
+        function displayContactForm() {
+            // Create a form message within the chat itself
+            const formMessage = document.createElement('div');
+            formMessage.className = 'message assistant-message finance';
+            
+            // Create an inline form that mirrors the main form
+            const inlineForm = document.createElement('div');
+            inlineForm.className = 'inline-contact-form';
+            inlineForm.innerHTML = `
+                <h3>Connect with a Financial Services Expert</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inline-name">Name*</label>
+                        <input type="text" id="inline-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inline-email">Email*</label>
+                        <input type="email" id="inline-email" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inline-company">Company*</label>
+                        <input type="text" id="inline-company" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inline-job-title">Job Title</label>
+                        <input type="text" id="inline-job-title">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inline-industry">Industry*</label>
+                        <select id="inline-industry" required>
+                            <option value="">-- Select Industry --</option>
+                            <option value="banking">Banking</option>
+                            <option value="insurance">Insurance</option>
+                            <option value="wealth_management">Wealth Management</option>
+                            <option value="capital_markets">Capital Markets</option>
+                            <option value="payments">Payments</option>
+                            <option value="fintech">Fintech</option>
+                            <option value="other">Other Financial Services</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inline-message">How can we help your organization?</label>
+                    <textarea id="inline-message" rows="4"></textarea>
+                </div>
+                <button id="inline-submit-lead">Submit</button>
+            `;
+            
+            formMessage.appendChild(inlineForm);
+            chatMessages.appendChild(formMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Add event listener for the inline form
+            document.getElementById('inline-submit-lead').addEventListener('click', async () => {
+                const name = document.getElementById('inline-name').value;
+                const email = document.getElementById('inline-email').value;
+                const company = document.getElementById('inline-company').value;
+                const jobTitle = document.getElementById('inline-job-title').value;
+                const industry = document.getElementById('inline-industry').value;
+                const message = document.getElementById('inline-message').value;
+                
+                if (!name || !email || !company || !industry) {
+                    showStatus('Please fill in all required fields', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_URL}/lead`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name,
+                            email,
+                            company,
+                            job_title: jobTitle,
+                            industry,
+                            message
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    showStatus(data.message, 'success');
+                    
+                    // Remove the form message
+                    formMessage.remove();
+                    
+                    // Add a thank you message
+                    const thankYouMessage = document.createElement('div');
+                    thankYouMessage.className = 'message assistant-message finance';
+                    thankYouMessage.innerHTML = `
+                        <div class="message-content">
+                            <div class="response-card">
+                                <h3>Thank you for your information!</h3>
+                                <p>One of our financial services experts will be in touch with you shortly to discuss how Anaptyss can help with your specific needs.</p>
+                                <p>In the meantime, feel free to continue exploring our banking and financial services capabilities with AnaptIQ.</p>
+                            </div>
+                        </div>
+                    `;
+                    chatMessages.appendChild(thankYouMessage);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    showStatus('Failed to submit form. Please try again.', 'error');
+                }
+            });
+        }
+        
+        async function checkServerConnection() {
+            try {
+                const response = await fetch(`${API_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'ok' || data.status === 'warning') {
+                    // Server is connected
+                    connectionWarning.style.display = 'none';
+                    serverConnected = true;
+                    return true;
+                } else {
+                    // Server has issues
+                    connectionWarning.style.display = 'flex';
+                    serverConnected = false;
+                    return false;
+                }
+            } catch (error) {
+                // Server is not reachable
+                connectionWarning.style.display = 'flex';
+                serverConnected = false;
+                return false;
+            }
+        }
+        
+        async function sendMessage() {
+			const message = messageInput.value.trim();
+			if (!message) return;
+			
+			// Check for duplicate message - compare with the last message
+			const messages = Array.from(chatMessages.querySelectorAll('.user-message'));
+			if (messages.length > 0) {
+				const lastMessage = messages[messages.length - 1];
+				const lastMessageContent = lastMessage.querySelector('.message-content').textContent.trim();
+				
+				if (lastMessageContent === message) {
+					// Don't send the same message twice in a row
+					showStatus('You already sent this message', 'warning');
+					return;
+				}
+			}
+			
+			// Display user message
+			chatMessages.appendChild(createMessageElement(message, true));
+			messageInput.value = '';
+			chatMessages.scrollTop = chatMessages.scrollHeight;
+			
+			showLoading();
+			
+			// Check server connection
+			if (!serverConnected) {
+				await checkServerConnection();
+				if (!serverConnected) {
+					chatMessages.appendChild(createMessageElement(
+						"I'm sorry, but I can't connect to our financial services knowledge base at the moment. Please check your connection and try again.",
+						false
+					));
+					chatMessages.scrollTop = chatMessages.scrollHeight;
+					hideLoading();
+					return;
+				}
+			}
+			
+			try {
+				console.log("Sending message with session ID:", sessionId);
+				const response = await fetch(`${API_URL}/chat`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						message: message,
+						session_id: sessionId
+					})
+				});
+				
+				if (!response.ok) {
+					throw new Error(`Server responded with status: ${response.status}`);
+				}
+				
+				const data = await response.json();
+				console.log("Received response:", data);
+				
+				// Update session ID if needed
+				if (!sessionId) {
+					sessionId = data.session_id;
+					localStorage.setItem('anaptyss_session_id', sessionId);
+					console.log("Set new session ID:", sessionId);
+				}
+				
+				// Check if we got a valid response
+				if (!data.reply || data.reply.trim() === '') {
+					throw new Error("Received empty response from server");
+				}
+				
+				// Store the response to detect future duplicates
+				lastResponseText = data.reply;
+				
+				// Display assistant response
+				const isWelcome = data.reply && data.reply.includes('Welcome to AnaptIQ');
+				chatMessages.appendChild(createMessageElement(data.reply, false, isWelcome));
+				
+				// Display sources if available
+				if (data.sources && data.sources.length > 0) {
+					displaySources(data.sources);
+				}
+				
+				// Show lead form if recommended by the server
+				if (data.show_form) {
+					displayContactForm();
+				}
+				
+			//	chatMessages.scrollTop = chatMessages.scrollHeight;
+				
+			} catch (error) {
+				console.error('Error:', error);
+				chatMessages.appendChild(createMessageElement(
+					"I apologize, but we're experiencing technical difficulties with our financial services knowledge base. Please try again later.",
+					false
+				));
+				chatMessages.scrollTop = chatMessages.scrollHeight;
+				
+				// Show connection warning
+				connectionWarning.style.display = 'flex';
+				serverConnected = false;
+				
+				showStatus('Error: ' + error.message, 'error');
+			} finally {
+				hideLoading();
+			}
+		}
+        // Event Listeners
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        sendButton.addEventListener('click', sendMessage);
+        
+        clearBtn.addEventListener('click', async () => {
+            if (!sessionId) return;
+            
+            try {
+                await fetch(`${API_URL}/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+                
+                localStorage.removeItem('anaptyss_session_id');
+                sessionId = null;
+                chatMessages.innerHTML = '';
+                leadForm.style.display = 'none';
+                messageCounter = 0;
+                showStatus('Chat history cleared', 'success');
+                
+                // Reinitialize with welcome message
+                chatMessages.appendChild(createMessageElement(
+                    generateWelcomeMessage(),
+                    false,
+                    true
+                ));
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Failed to clear chat history', 'error');
+            }
+        });
+        
+        retryBtn.addEventListener('click', async () => {
+            const isConnected = await checkServerConnection();
+            if (isConnected) {
+                showStatus('Connection restored!', 'success');
+            } else {
+                showStatus('Still unable to connect to server', 'error');
+            }
+        });
+        
+        submitLead.addEventListener('click', async () => {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const company = document.getElementById('company').value;
+            const jobTitle = document.getElementById('job-title').value;
+            const industry = document.getElementById('industry').value;
+            const companySize = document.getElementById('company-size').value;
+            const message = document.getElementById('message').value;
+            
+            if (!name || !email || !company || !industry) {
+                showStatus('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/lead`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        company,
+                        job_title: jobTitle,
+                        industry,
+                        company_size: companySize,
+                        message
+                    })
+                });
+                
+                const data = await response.json();
+                showStatus(data.message, 'success');
+                leadForm.style.display = 'none';
+                
+                // Add a thank you message to the chat
+                chatMessages.appendChild(createMessageElement(
+                    "Thank you for your information! One of our financial services experts will be in touch with you shortly to discuss how Anaptyss can help with your specific needs.",
+                    false
+                ));
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Failed to submit form. Please try again.', 'error');
+            }
+        });
+		
+		// Add global error handler
+		window.onerror = function(message, source, lineno, colno, error) {
+			console.error("Global error:", message, "at", source, ":", lineno);
+			showStatus('An error occurred. Please try refreshing the page.', 'error');
+			return true;
+		};
+
+		// Add debugging for suggested questions
+		function displaySuggestedQuestions(questions) {
+			console.log("Displaying suggested questions:", questions);
+			if (!questions || questions.length === 0) {
+				console.warn("No suggested questions to display");
+				return;
+			}
+			
+			const container = document.createElement('div');
+			container.className = 'suggested-questions';
+			
+			const heading = document.createElement('h4');
+			heading.textContent = 'You might also want to ask:';
+			container.appendChild(heading);
+			
+			questions.forEach(question => {
+				const btn = document.createElement('span');
+				btn.className = 'suggested-question';
+				btn.textContent = question;
+				btn.onclick = () => {
+					console.log("Clicked on suggested question:", question);
+					messageInput.value = question;
+					sendMessage();
+				};
+				container.appendChild(btn);
+			});
+			
+			chatMessages.appendChild(container);
+			console.log("Suggested questions added to DOM");
+		}
+
+        function generateWelcomeMessage() {
+            return `# Welcome to AnaptIQ
+
+I'm your executive-level consultant for financial services technology. I can help with:
+
+- 📊 **Digital Transformation** in banking and financial services
+- 💼 **Core Banking Modernization** strategies and implementation approaches
+- 🔒 **Regulatory Compliance** solutions including Basel, KYC/AML, and GDPR
+- 📈 **Risk Management** frameworks and technology solutions
+- 💡 **AI & Analytics** implementation in financial services
+- 🌐 **Cloud Migration** for financial institutions
+
+How can I assist with your financial services technology needs today?`;
+        }
+
+        // Check server connection on load
+        async function initializeChat() {
+            await checkServerConnection();
+            
+            // On page load, show welcome message
+            chatMessages.appendChild(createMessageElement(
+                generateWelcomeMessage(),
+                false,
+                true
+            ));
+        }
+
+        // Initialize chat
+        window.addEventListener('DOMContentLoaded', initializeChat);
+    </script>
+</body>
+</html>

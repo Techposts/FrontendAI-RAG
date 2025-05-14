@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+import requests
+import tiktoken
+import time
+import uuid
+from openai import OpenAI
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import PointStruct, VectorsConfig, Distance
+from config import OPENAI_API_KEY, QDRANT_URL, SITE_URL
+
+# 1) HTTP HEADERS
+HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}
+
+# 2) Sanity‑check WP REST API
+print(f"▶︎ Testing SITE_URL: {SITE_URL}")
+r_root = requests.get(f"{SITE_URL}/wp-json", headers=HEADERS)
+print(f"  /wp-json → {r_root.status_code}")
+r_test = requests.get(f"{SITE_URL}/wp-json/wp/v2/posts?per_page=1", headers=HEADERS)
+print(f"  /wp-json/wp/v2/posts?per_page=1 → {r_test.status_code}, starts with:\n{r_test.text[:200]}\n")
+
+# 3) Init OpenAI & Qdrant clients
+openai = OpenAI(api_key=OPENAI_API_KEY)
+qdrant = QdrantClient(url=QDRANT_URL)
+
+COLLECTION = "anaptyss_content"
+existing = [c.name for c in qdrant.get_collections().collections]
+if COLLECTION not in existing:
+    qdrant.create_collection(
+        collection_name=COLLECTION,
+        vectors_config=VectorsConfig(size=1536, distance=Distance.COSINE)
+    )
+    print(f"Created Qdrant collection '{COLLECTION}'")
+else:
+    print(f"Qdrant collection '{COLLECTION}' already exists")
+
+# 4) Fetch WordPress content
+POST_TYPES = ["posts", "pages"]  # add custom types if needed
+all_docs = []
+for pt in POST_TYPES:
+    page = 1
+    while True:
+        url = f"{SITE_URL}/wp-json/wp/v2/{pt}?per_page=100&page={page}"
+        resp = requests.get(url, headers=HEADERS)
+        if resp.status_code != 200:
+            print(f" → {pt} page {page} → HTTP {resp.status_code}, stopping.")
+            break
+        data = resp.json()
+        if not data:
+            break
+        for item in data:
+            all_docs.append({
+                "id":    f"{pt}-{item['id']}",
+                "title": item.get("title", {}).get("rendered", ""),
+                "url":   item.get("link", ""),
+                "text":  item.get("content", {}).get("rendered", "")
+            })
+        page += 1
+
+print(f"Fetched {len(all_docs)} documents from WordPress.\n")
+
+# 5) Chunk & embed with progress logs
+encoder    = tiktoken.get_encoding("cl100k_base")
+MAX_TOKENS = 500
+
+def chunk_text(text: str):
+    tokens = encoder.encode(text)
+    for i in range(0, len(tokens), MAX_TOKENS):
+        yield encoder.decode(tokens[i : i + MAX_TOKENS])
+
+points = []
+total_chunks = sum(len(list(chunk_text(doc["text"]))) for doc in all_docs)
+print(f"Total chunks to embed: {total_chunks}\n")
+
+counter = 0
+for doc in all_docs:
+    for idx, chunk in enumerate(chunk_text(doc["text"])):
+        counter += 1
+        print(f"[{counter}/{total_chunks}] Embedding {doc['id']} chunk #{idx} …", end="", flush=True)
+        resp = openai.embeddings.create(input=chunk, model="text-embedding-ada-002")
+        vector = resp.data[0].embedding
+        print(" done.")
+
+        # Generate a UUID5 from the doc_id+chunk index
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{doc['id']}-{idx}"))
+        payload = {
+            "doc_id":      doc["id"],
+            "title":       doc["title"],
+            "url":         doc["url"],
+            "chunk_index": idx
+            "text":        chunk
+        }
+        points.append(PointStruct(id=point_id, vector=vector, payload=payload))
+
+# 6) Upsert into Qdrant
+print(f"\nUpserting {len(points)} points in batches…")
+BATCH_SIZE = 64
+for i in range(0, len(points), BATCH_SIZE):
+    batch = points[i : i + BATCH_SIZE]
+    qdrant.upsert(collection_name=COLLECTION, points=batch)
+    print(f"  • Upserted points {i + 1}–{i + len(batch)}")
+
+print("\n✅ Ingestion complete.")
